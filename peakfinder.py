@@ -22,6 +22,7 @@ import sys
 import matplotlib.backends.tkagg as tkagg
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 from sympy.physics.quantum.circuitplot import pyplot
+from numpy import median
 
 class PeakFinder:
     def __init__(self, master):
@@ -33,6 +34,7 @@ class PeakFinder:
         size=20, weight='normal')
         self.X = None
         self.Y = None
+        self.maxima = None
         self.number_max = 0
         self.number_max_string = StringVar()
         self.max_max = 0.0
@@ -44,6 +46,7 @@ class PeakFinder:
         self.method_string = StringVar()
         self.sample_file = ''
         self.project_file = ''
+        self.w = 0.0
         
         
         # define options for opening or saving a file
@@ -79,8 +82,8 @@ class PeakFinder:
         self.menubar = Menu(master)
         # create a pulldown menu, and add it to the menu bar
         self.filemenu = Menu(self.menubar, tearoff=0)
-        self.filemenu.add_command(label="Neu", command=self.greet, font = self.normal_font)
-        self.filemenu.add_command(label="Oeffnen...", command=self.greet, font = self.normal_font)
+        self.filemenu.add_command(label="Neu", command=self.new_file, font = self.normal_font)
+        self.filemenu.add_command(label="Oeffnen...", command=self.open_file, font = self.normal_font)
         self.filemenu.add_separator()
         self.filemenu.add_command(label="Messung importieren", command=self.get_filepath, font = self.normal_font)
         self.filemenu.add_separator()
@@ -145,7 +148,7 @@ class PeakFinder:
         self.comment_entry = ttk.Entry(master, font = self.normal_font)
         self.comment_entry.grid(row = 10, column = 1, columnspan = 3)
         
-        self.save_button = Button(master, text = "Speichern", font = self.normal_font, command = self.greet, width = 10)
+        self.save_button = Button(master, text = "Speichern", font = self.normal_font, command = self.save, width = 10)
         self.save_button.grid(row = 12, column = 1, columnspan = 2, sticky=W)
         
         
@@ -217,6 +220,7 @@ class PeakFinder:
             self.xm = [p[0] for p in self._max]
             self.ym = [p[1] for p in self._max]
             
+            self.maxima = self.ym
             self.number_max = len(self._max)
             self.number_max_string.set(str(self.number_max))
             
@@ -235,6 +239,11 @@ class PeakFinder:
             self.ax.set_ylabel('Kraft [N]')
             self.fig_photo = self.draw_figure(self.canvas, self.fig, loc=(0, 0))
             
+            if self.number_max > 1:
+                self.method_string.set('Median')
+            else:
+                self.method_string.set('Maximum')
+            
         except:
             print('Fehler')
     
@@ -242,16 +251,38 @@ class PeakFinder:
         if self.sample_thickness_entry.get() == '':
             print('Bitte Probendicke eintragen')
         else:
-            print(self.sample_thickness_entry.get())
+            if self.number_max > 1:
+                self.w = self.median_calculation()
+            else:
+                self.w = self.one_max_calculation()
+            
+            
+                
+            
+    def median_calculation(self):
+        d = float(self.sample_thickness_entry.get())
+        med = np.median(self.maxima)
+        self.median = med
+        return med/d
+        
+    def one_max_calculation(self):
+        d = float(self.sample_thickness_entry.get())
+        self.median = self.max_max
+        return self.max_max/d
     
     def save(self):
-        pass
+        self.project_file_write = open(self.project_file, 'a')
+        self.project_file_write.write('\n'+self.sample_name_entry.get()+'\t'+str(self.number_max)+'\t'+str(self.max_max)+'\t'+str(self.min_max)+'\t'+str(self.median)+'\t'+self.sample_thickness_entry.get()+'\t'+str(self.w))
+        self.project_file_write.close()
     
     def new_file(self):
-        pass
+        self.project_file = tkFileDialog.asksaveasfilename()
+        self.project_file_write = open(self.project_file, 'a')
+        self.project_file_write.write('Probenname\tNMax\tMaxMax\tMinMax\tMedian\tProbendicke\Weiterreisswiderstand')
+        self.project_file_write.close()
     
     def open_file(self):
-        pass
+        self.project_file = tkFileDialog.askopenfilename()
     
     def get_filepath(self):
         self.sample_file = tkFileDialog.askopenfilename(**self.file_opt)
