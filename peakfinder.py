@@ -2,27 +2,15 @@
 # -*- noplot -*-
 
 
-from Tkinter import Tk, Label, Button, Menu, Spinbox, W, PhotoImage, Canvas, StringVar
+from Tkinter import Tk, Button, Menu, Spinbox, W, PhotoImage, Canvas, StringVar
 import tkFileDialog
 import ttk
 import tkFont
-import pylab
-
-
-from math import pi, log
-
-from scipy import fft, ifft
-from scipy.optimize import curve_fit
-
-import matplotlib as mpl
 from matplotlib import pyplot as plt
 import numpy as np
-import sys
-
 import matplotlib.backends.tkagg as tkagg
 from matplotlib.backends.backend_agg import FigureCanvasAgg
-from sympy.physics.quantum.circuitplot import pyplot
-from numpy import median
+
 
 class PeakFinder:
     def __init__(self, master):
