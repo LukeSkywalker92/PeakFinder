@@ -37,8 +37,11 @@ class PeakFinder:
         self.w = 0.0
         self.distance = 0.0
         
+        #########################################################################
         
-        # define options for opening or saving a file
+        '''
+        Optionen für Dateidialoge
+        '''
         self.file_opt = options = {}
         options['defaultextension'] = '.txt'
         options['filetypes'] = [('text files', '.txt')]
@@ -59,21 +62,14 @@ class PeakFinder:
         options['initialfile'] = ''
         options['parent'] = master
         options['title'] = 'Vorhandenes Projekt öffnen.'
-   
-        # This is only available on the Macintosh, and only when Navigation Services are installed.
-        #options['message'] = 'message'
-   
-        # if you use the multiple file version of the module functions this option is set automatically.
-        #options['multiple'] = 1
-   
-        # defining options for opening a directory
-        self.dir_opt = options = {}
-        options['initialdir'] = '/home/'
-        options['mustexist'] = False
-        options['parent'] = root
-        options['title'] = 'This is a title'
         
         
+        #####################################################################################################
+        
+        '''
+        GUI
+        '''
+   
         
         '''
         MenueLeiste
@@ -131,6 +127,8 @@ class PeakFinder:
         
         self.sample_thickness_entry = ttk.Entry(master, font = self.normal_font, width = 5)
         self.sample_thickness_entry.grid(row = 5, column = 1)
+        
+        ##########################################################################################################
 
         '''
         Speichern
@@ -152,6 +150,9 @@ class PeakFinder:
         
         self.save_button = Button(master, text = "Speichern", font = self.normal_font, command = self.save, width = 10)
         self.save_button.grid(row = 12, column = 1, columnspan = 2, sticky=W)
+        
+        
+        ##############################################################################################################
         
         
         '''
@@ -183,6 +184,8 @@ class PeakFinder:
         self.method_method_label.grid(row = 12, column = 7)
         
         
+        ##########################################################################################################
+        
         '''
         Canvas
         '''
@@ -194,21 +197,9 @@ class PeakFinder:
         self.canvas.grid(row = 0, column = 5, columnspan = 5, rowspan = 9)
         
         
-        
-        
-       
-        
-        
-
-
-
-
-
-
-
-
-
-
+        '''
+        Funktionen
+        '''
 
 
 
@@ -216,12 +207,14 @@ class PeakFinder:
     def plot(self):
         
         try:
-        
+            #Maxima finden
             self._max, self._min = self.peakdetect(self.Y, self.X, float(self.delta_x_spinbox.get()), float(self.delta_y_spinbox.get()))
             
+            #Maxima in Array schreiben
             self.xm = [p[0] for p in self._max]
             self.ym = [p[1] for p in self._max]
             
+            #Maxima verarbeiten
             self.maxima = self.ym
             self.maxima_x = self.xm
             self.number_max = len(self._max)
@@ -233,6 +226,7 @@ class PeakFinder:
             self.min_max = min(self.ym)
             self.min_max_string.set(str(self.min_max))
             
+            #Graph Plotten
             self.fig = plt.Figure(figsize=(8, 5), dpi=100)
             self.ax = self.fig.add_subplot(111)
             self.ax.plot(self.X, self.Y)
@@ -242,13 +236,14 @@ class PeakFinder:
             self.ax.set_ylabel('Kraft [N]')
             self.fig_photo = self.draw_figure(self.canvas, self.fig, loc=(0, 0))
             
+            #Methode Anzeigen
             if self.number_max <= 5:
                 self.method_string.set('Median')
             else:
                 self.method_string.set('80% Median')
             
         except:
-            print('Fehler')
+            tkMessageBox.showwarning('Fehler bei der Berechnung!', 'Bitte Eingaben prüfen.')
     
     def calculate(self):
         if self.sample_thickness_entry.get() == '':
@@ -260,7 +255,6 @@ class PeakFinder:
             else:
                 self.percent_calculation()
             
-        
     def percent_calculation(self):
         #Berechnung 80 Prozent von #Maxima
         n = int(round(self.number_max*0.8))
@@ -279,15 +273,7 @@ class PeakFinder:
         
         #Berechnung der Spannweite
         self.distance = self.maxima_x[len(self.maxima_x)-1]-self.maxima_x[0]
-        
-        print(self.w)
-        print(self.distance)
-        
-    
-                
-    
-    
-            
+           
     def median_calculation(self):
         #Berechnung des Weiterreisswiderstands
         d = float(self.sample_thickness_entry.get()) #Auslesen der Probendicke
@@ -296,20 +282,13 @@ class PeakFinder:
         
         #Berechnung der Spannweite
         self.distance = self.maxima_x[len(self.maxima_x)-1]-self.maxima_x[0]
-        
-        print(self.w)
-        print(self.distance)
-        
-    def one_max_calculation(self):
-        d = float(self.sample_thickness_entry.get())
-        self.median = self.max_max
-        return self.max_max/d
     
     def save(self):
+        #Speichern der Auswertung im Projekt
         if self.project_file != '':
             maxima_string = ''
-            for max in self.maxima:
-                maxima_string += str(max)+'\t'
+            for maximum in self.maxima:
+                maxima_string += str(maximum)+'\t'
             print(maxima_string)
             self.project_file_write = open(self.project_file, 'a')
             self.project_file_write.write('\n'+self.sample_name_entry.get()+'\t'+str(self.number_max)+'\t'+str(self.median)+'\t'+self.sample_thickness_entry.get()+'\t'+str(self.w)+'\t'+str(self.distance)+'\t'+self.method_string.get()+'\t'+self.comment_entry.get()+'\t'+maxima_string)
@@ -317,31 +296,29 @@ class PeakFinder:
         else:
             tkMessageBox.showwarning(u'Keine Datei zum Speichern geöffnet!', u'Bitte Datei zum Speichern öffnen oder neue Datei erstellen.')
 
-    
     def new_file(self):
+        #Neues Projekt erstellen
         self.project_file = tkFileDialog.asksaveasfilename(**self.file_opt2)
         self.project_file_write = open(self.project_file, 'a')
         self.project_file_write.write('Probenname\tNMax\tMedian\tProbendicke\tWeiterreisswiderstand\tSpannweite\tMethode\tKommentar\tMaxima(80%)')
         self.project_file_write.close()
     
     def open_file(self):
+        #Bestehendes Projekt öffnen
         self.project_file = tkFileDialog.askopenfilename(**self.file_opt3)
     
     def get_filepath(self):
+        #Dateipfad von Messung erfragen
         self.sample_file = tkFileDialog.askopenfilename(**self.file_opt)
         self.import_data(self.sample_file)
     
-    def import_data(self, file):
-        self.X, self.Y = np.loadtxt(file, usecols = (1,0), unpack = True)
+    def import_data(self, loadfile):
+        #Messung importieren
+        self.X, self.Y = np.loadtxt(loadfile, usecols = (1,0), unpack = True)
         self.plot()
-
-
-
-    def greet(self):
-        print("Greetings!")
-        
         
     def help(self):
+        #Hilfeseite zeigen
         top = Toplevel()
         top.title("Hilfe")
         
@@ -361,6 +338,7 @@ class PeakFinder:
         button.pack()
     
     def info(self):
+        #Infoseite zeigen
         top = Toplevel()
         top.title(u"Über dieses Programm...")
         
@@ -369,8 +347,7 @@ class PeakFinder:
         
         button = Button(top, text="Verbergen", command=top.destroy)
         button.pack()
-        
-        
+                
     def draw_figure(self, canvas, figure, loc=(0, 0)):
         ''' 
         Draw a matplotlib figure onto a Tk canvas
@@ -381,7 +358,7 @@ class PeakFinder:
         '''
         figure_canvas_agg = FigureCanvasAgg(figure)
         figure_canvas_agg.draw()
-        figure_x, figure_y, figure_w, figure_h = figure.bbox.bounds
+        figure_w, figure_h = figure.bbox.bounds
         figure_w, figure_h = int(figure_w), int(figure_h)
         photo = PhotoImage(master=canvas, width=figure_w, height=figure_h)
     
@@ -520,11 +497,9 @@ class PeakFinder:
             
         return [max_peaks, min_peaks]
 
-
-
-    
-
-
+'''
+GUI erzeugen
+'''
 
 
 root = Tk()
