@@ -1,18 +1,4 @@
-from cx_Freeze import setup, Executable
+from distutils.core import setup
+import py2exe
 
-# Dependencies are automatically detected, but it might need
-# fine tuning.
-buildOptions = dict(packages = [], excludes = [])
-
-import sys
-base = 'Win32GUI' if sys.platform=='win32' else None
-
-executables = [
-    Executable('C:\\Users\\Luke\\PythonWorkspace\\peakfinder\\peakfinder.py', base=base, targetName = 'PeakFinder')
-]
-
-setup(name='PeakFinder',
-      version = '1.0',
-      description = '',
-      options = dict(build_exe = buildOptions),
-      executables = executables)
+setup(windows = [{'script': "peakfinder.py"}], zipfile = None)

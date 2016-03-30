@@ -1,9 +1,8 @@
-#!/usr/bin/env python
-# -*- noplot -*-
+# -*- coding: iso-8859-15 -*-
 
-
-from Tkinter import Tk, Button, Menu, Spinbox, W, PhotoImage, Canvas, StringVar
+from Tkinter import Tk, Button, Menu, Spinbox, W, PhotoImage, Canvas, StringVar, Toplevel, Message
 import tkFileDialog
+import tkMessageBox
 import ttk
 import tkFont
 from matplotlib import pyplot as plt
@@ -15,7 +14,7 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg
 class PeakFinder:
     def __init__(self, master):
         self.master = master
-        master.title("Weiterreisswiderstand")
+        master.title(u"Weiterreißwiderstand")
         self.big_font = tkFont.Font(family='Helvetica',
         size=36, weight='bold')
         self.normal_font = tkFont.Font(family='Helvetica',
@@ -23,6 +22,7 @@ class PeakFinder:
         self.X = None
         self.Y = None
         self.maxima = None
+        self.maxima_x = None
         self.number_max = 0
         self.number_max_string = StringVar()
         self.max_max = 0.0
@@ -35,16 +35,30 @@ class PeakFinder:
         self.sample_file = ''
         self.project_file = ''
         self.w = 0.0
+        self.distance = 0.0
         
         
         # define options for opening or saving a file
         self.file_opt = options = {}
         options['defaultextension'] = '.txt'
         options['filetypes'] = [('text files', '.txt')]
-        options['initialdir'] = '/home/'
         options['initialfile'] = ''
         options['parent'] = master
         options['title'] = 'Messung importieren'
+        
+        self.file_opt2 = options = {}
+        options['defaultextension'] = '.txt'
+        options['filetypes'] = [('text files', '.txt')]
+        options['initialfile'] = ''
+        options['parent'] = master
+        options['title'] = 'Neues Projekt erstellen.'
+        
+        self.file_opt3 = options = {}
+        options['defaultextension'] = '.txt'
+        options['filetypes'] = [('text files', '.txt')]
+        options['initialfile'] = ''
+        options['parent'] = master
+        options['title'] = 'Vorhandenes Projekt öffnen.'
    
         # This is only available on the Macintosh, and only when Navigation Services are installed.
         #options['message'] = 'message'
@@ -71,7 +85,7 @@ class PeakFinder:
         # create a pulldown menu, and add it to the menu bar
         self.filemenu = Menu(self.menubar, tearoff=0)
         self.filemenu.add_command(label="Neu", command=self.new_file, font = self.normal_font)
-        self.filemenu.add_command(label="Oeffnen...", command=self.open_file, font = self.normal_font)
+        self.filemenu.add_command(label=u"Öffnen...", command=self.open_file, font = self.normal_font)
         self.filemenu.add_separator()
         self.filemenu.add_command(label="Messung importieren", command=self.get_filepath, font = self.normal_font)
         self.filemenu.add_separator()
@@ -79,8 +93,8 @@ class PeakFinder:
         self.menubar.add_cascade(label="Datei", menu=self.filemenu, font = self.normal_font)
         
         self.helpmenu = Menu(self.menubar, tearoff=0)
-        self.helpmenu.add_command(label="Hilfe", command=self.greet, font = self.normal_font)
-        self.helpmenu.add_command(label="Ueber", command=self.greet, font = self.normal_font)
+        self.helpmenu.add_command(label="Hilfe", command=self.help, font = self.normal_font)
+        self.helpmenu.add_command(label=u"Über", command=self.info, font = self.normal_font)
         self.menubar.add_cascade(label="Hilfe", menu=self.helpmenu, font = self.normal_font)
         
         master.config(menu=self.menubar)
@@ -150,7 +164,7 @@ class PeakFinder:
         self.number_max_int_label = ttk.Label(master, textvariable = self.number_max_string, font = self.normal_font)
         self.number_max_int_label.grid(row = 9, column = 7)
         
-        self.max_max_label = ttk.Label(master, text = "Groesstes Maximum:", font = self.normal_font)
+        self.max_max_label = ttk.Label(master, text = u"Größtes Maximum:", font = self.normal_font)
         self.max_max_label.grid(row = 10, column = 6, sticky=W)
         
         self.max_max_int_label = ttk.Label(master, textvariable = self.max_max_string, font = self.normal_font)
@@ -209,6 +223,7 @@ class PeakFinder:
             self.ym = [p[1] for p in self._max]
             
             self.maxima = self.ym
+            self.maxima_x = self.xm
             self.number_max = len(self._max)
             self.number_max_string.set(str(self.number_max))
             
@@ -227,31 +242,63 @@ class PeakFinder:
             self.ax.set_ylabel('Kraft [N]')
             self.fig_photo = self.draw_figure(self.canvas, self.fig, loc=(0, 0))
             
-            if self.number_max > 1:
+            if self.number_max <= 5:
                 self.method_string.set('Median')
             else:
-                self.method_string.set('Maximum')
+                self.method_string.set('80% Median')
             
         except:
             print('Fehler')
     
     def calculate(self):
         if self.sample_thickness_entry.get() == '':
-            print('Bitte Probendicke eintragen')
+            tkMessageBox.showwarning('Keine Probendicke eingetragen!', 'Bitte Probendicke zur Berechnung eintragen.')
+
         else:
-            if self.number_max > 1:
-                self.w = self.median_calculation()
+            if self.number_max <= 5:
+                self.median_calculation()
             else:
-                self.w = self.one_max_calculation()
+                self.percent_calculation()
             
-            
+        
+    def percent_calculation(self):
+        #Berechnung 80 Prozent von #Maxima
+        n = int(round(self.number_max*0.8))
+        delta = self.number_max - n
+       
+        #Entfernen der ersten und zweiten 10 Prozent
+        del self.maxima[0:int(round(delta/2))]
+        del self.maxima[len(self.maxima)-int(round(delta-int(round(delta/2)))):len(self.maxima)]
+        del self.maxima_x[0:int(round(delta/2))]
+        del self.maxima_x[len(self.maxima_x)-int(round(delta-int(round(delta/2)))):len(self.maxima_x)]
+        
+        #Berechnung des Weiterreisswiderstands
+        d = float(self.sample_thickness_entry.get()) #Auslesen der Probendicke
+        self.median = np.median(self.maxima) #Berechnung des Medians
+        self.w = self.median/d
+        
+        #Berechnung der Spannweite
+        self.distance = self.maxima_x[len(self.maxima_x)-1]-self.maxima_x[0]
+        
+        print(self.w)
+        print(self.distance)
+        
+    
                 
+    
+    
             
     def median_calculation(self):
-        d = float(self.sample_thickness_entry.get())
-        med = np.median(self.maxima)
-        self.median = med
-        return med/d
+        #Berechnung des Weiterreisswiderstands
+        d = float(self.sample_thickness_entry.get()) #Auslesen der Probendicke
+        self.median = np.median(self.maxima) #Berechnung des Medians
+        self.w = self.median/d
+        
+        #Berechnung der Spannweite
+        self.distance = self.maxima_x[len(self.maxima_x)-1]-self.maxima_x[0]
+        
+        print(self.w)
+        print(self.distance)
         
     def one_max_calculation(self):
         d = float(self.sample_thickness_entry.get())
@@ -259,18 +306,26 @@ class PeakFinder:
         return self.max_max/d
     
     def save(self):
-        self.project_file_write = open(self.project_file, 'a')
-        self.project_file_write.write('\n'+self.sample_name_entry.get()+'\t'+str(self.number_max)+'\t'+str(self.max_max)+'\t'+str(self.min_max)+'\t'+str(self.median)+'\t'+self.sample_thickness_entry.get()+'\t'+str(self.w))
-        self.project_file_write.close()
+        if self.project_file != '':
+            maxima_string = ''
+            for max in self.maxima:
+                maxima_string += str(max)+'\t'
+            print(maxima_string)
+            self.project_file_write = open(self.project_file, 'a')
+            self.project_file_write.write('\n'+self.sample_name_entry.get()+'\t'+str(self.number_max)+'\t'+str(self.median)+'\t'+self.sample_thickness_entry.get()+'\t'+str(self.w)+'\t'+str(self.distance)+'\t'+self.method_string.get()+'\t'+self.comment_entry.get()+'\t'+maxima_string)
+            self.project_file_write.close()
+        else:
+            tkMessageBox.showwarning(u'Keine Datei zum Speichern geöffnet!', u'Bitte Datei zum Speichern öffnen oder neue Datei erstellen.')
+
     
     def new_file(self):
-        self.project_file = tkFileDialog.asksaveasfilename()
+        self.project_file = tkFileDialog.asksaveasfilename(**self.file_opt2)
         self.project_file_write = open(self.project_file, 'a')
-        self.project_file_write.write('Probenname\tNMax\tMaxMax\tMinMax\tMedian\tProbendicke\Weiterreisswiderstand')
+        self.project_file_write.write('Probenname\tNMax\tMedian\tProbendicke\tWeiterreisswiderstand\tSpannweite\tMethode\tKommentar\tMaxima(80%)')
         self.project_file_write.close()
     
     def open_file(self):
-        self.project_file = tkFileDialog.askopenfilename()
+        self.project_file = tkFileDialog.askopenfilename(**self.file_opt3)
     
     def get_filepath(self):
         self.sample_file = tkFileDialog.askopenfilename(**self.file_opt)
@@ -284,6 +339,36 @@ class PeakFinder:
 
     def greet(self):
         print("Greetings!")
+        
+        
+    def help(self):
+        top = Toplevel()
+        top.title("Hilfe")
+        
+        label1 = ttk.Label(top, text = u"Projekt öffnen/erstellen", font=self.normal_font)
+        label1.pack()
+        
+        msg1 = Message(top, text=u'Über Datei -> Neu muss zu Beginn eine .txt-Datei erstellt werden. In dieser werden die Ergebnisse der Auswertung gespeichert.\n\nAlternativ kann über Datei -> Öffnen... ein bereits existierendes Projekt mit den neuen Ergebnissen erweitert werden. \n\n')
+        msg1.pack()
+        
+        label2 = ttk.Label(top, text = u"Messung importieren und auswerten", font=self.normal_font)
+        label2.pack()
+        
+        msg2 = Message(top, text=u'Zunächst muss über Datei -> Messung importieren die gewünschte Messung importiert werden.\n\nAnschließend werden Delta X und Delta Y so eingestellt, dass nur die gewünschten Maxima (rote Punkte im Graphen) vom Algorithmus erkannt werden. Dies lässt sich nach verändern der Werte über den Knopf Plotten überprüfen.\n\nZur Berechnung des Weiterreißwiderstandes wird die Probendicke benötigt. Diese muss im entsprechenden Fenster eingetragen werden (Trennung durch . nicht durch ,  Bsp: 1.75).\n\nÜber die Schaltfläche Berechnen werden die gewünschten Werte berechnet.\n\nNachdem der Probenname und optional ein Kommentar zur Messung in die entsprechenden Fenster eingetragen wurden, lässt sich die Auswertung im zuvor gewählten Projekt abspeichern.')
+        msg2.pack()
+        
+        button = Button(top, text="Verbergen", command=top.destroy)
+        button.pack()
+    
+    def info(self):
+        top = Toplevel()
+        top.title(u"Über dieses Programm...")
+        
+        msg = Message(top, text=u'Dieses Programm dient zur Auswertung von Messungen für die Bestimmung des Weiterreißwiderstands nach DIN ISO 6133:2004-05\n\nZur Detektion der Maxima dient ein Algorithmus aus MATLAB (http://billauer.co.il/peakdet.html) verwendet, welcher nach Python übersetzt wurden.\n\nDas Programm entscheidet je nach Anzahl der Maxima selbst, welche Vorgabe für die Auswertung zu verwenden ist.\n\n\n\nErstellt von Lukas Scheffler')
+        msg.pack()
+        
+        button = Button(top, text="Verbergen", command=top.destroy)
+        button.pack()
         
         
     def draw_figure(self, canvas, figure, loc=(0, 0)):
