@@ -31,6 +31,8 @@ class PeakFinder:
         self.min_max_string = StringVar()
         self.median = 0.0
         self.median_string = StringVar()
+        self.w_string = StringVar()
+        self.distance_string = StringVar()
         self.method_string = StringVar()
         self.sample_file = ''
         self.project_file = ''
@@ -99,7 +101,7 @@ class PeakFinder:
         
         
         '''
-        Optionen
+        Parameter
         '''
         self.option_label = ttk.Label(master, text = "Parameter", font = self.big_font)
         self.option_label.grid(row = 0, rowspan = 2, columnspan = 4, sticky=W)
@@ -107,26 +109,28 @@ class PeakFinder:
         self.delta_x_label = ttk.Label(master, text = "Delta X", font = self.normal_font)
         self.delta_x_label.grid(row = 3, sticky=W)
         
-        self.delta_x_spinbox = Spinbox(master, from_=10, to=500, increment = 10, font = self.normal_font, width = 3)
+        self.delta_x_spinbox = Spinbox(master, from_=10, to=500, increment = 10, font = self.normal_font, width = 4, command = self.plot)
         self.delta_x_spinbox.grid(row = 3, column = 1)
         
         self.delta_y_label = ttk.Label(master, text = "Delta Y", font = self.normal_font)
         self.delta_y_label.grid(row = 4, column = 0, sticky=W)
         
-        self.delta_y_spinbox = Spinbox(master, from_=0, to=2, increment = 0.1, font = self.normal_font, width = 3)
+        self.delta_y_spinbox = Spinbox(master, from_=0, to=2, increment = 0.05, font = self.normal_font, width = 4, command = self.plot)
         self.delta_y_spinbox.grid(row = 4, column = 1)
         
-        self.plot_button = Button(master, text = "Plotten", font = self.normal_font, command = self.plot, width = 10)
-        self.plot_button.grid(row = 3, column = 2, columnspan = 1)
+#         self.plot_button = Button(master, text = "Plotten", font = self.normal_font, command = self.plot, width = 10)
+#         self.plot_button.grid(row = 3, column = 2, columnspan = 1)
         
-        self.calculate_button = Button(master, text = "Berechnen", font = self.normal_font, command = self.calculate, width = 10)
-        self.calculate_button.grid(row = 4, column = 2, columnspan = 1)
+        
         
         self.sample_thickness_label = ttk.Label(master, text = "Probendicke [mm]", font = self.normal_font)
         self.sample_thickness_label.grid(row = 5, column = 0, sticky=W)
         
         self.sample_thickness_entry = ttk.Entry(master, font = self.normal_font, width = 5)
         self.sample_thickness_entry.grid(row = 5, column = 1)
+        
+        self.calculate_button = Button(master, text = "Berechnen", font = self.normal_font, command = self.calculate, width = 10)
+        self.calculate_button.grid(row = 6, column = 1, columnspan = 1)
         
         ##########################################################################################################
 
@@ -165,23 +169,29 @@ class PeakFinder:
         self.number_max_int_label = ttk.Label(master, textvariable = self.number_max_string, font = self.normal_font)
         self.number_max_int_label.grid(row = 9, column = 7)
         
-        self.max_max_label = ttk.Label(master, text = u"Größtes Maximum:", font = self.normal_font)
+        self.max_max_label = ttk.Label(master, text = "Median [N]:", font = self.normal_font)
         self.max_max_label.grid(row = 10, column = 6, sticky=W)
         
-        self.max_max_int_label = ttk.Label(master, textvariable = self.max_max_string, font = self.normal_font)
+        self.max_max_int_label = ttk.Label(master, textvariable = self.median_string, font = self.normal_font)
         self.max_max_int_label.grid(row = 10, column = 7)
         
-        self.min_max_label = ttk.Label(master, text = "Kleinstes Maximum:", font = self.normal_font)
+        self.min_max_label = ttk.Label(master, text = u"Weiterreißwiderstand [N/mm]:", font = self.normal_font)
         self.min_max_label.grid(row = 11, column = 6, sticky=W)
         
-        self.min_max_int_label = ttk.Label(master, textvariable = self.min_max_string, font = self.normal_font)
+        self.min_max_int_label = ttk.Label(master, textvariable = self.w_string, font = self.normal_font)
         self.min_max_int_label.grid(row = 11, column = 7)
         
+        self.min_max_label = ttk.Label(master, text = u"Spannweite [mm]:", font = self.normal_font)
+        self.min_max_label.grid(row = 12, column = 6, sticky=W)
+        
+        self.min_max_int_label = ttk.Label(master, textvariable = self.distance_string, font = self.normal_font)
+        self.min_max_int_label.grid(row = 12, column = 7)
+        
         self.method_label = ttk.Label(master, text="Methode:", font = self.normal_font)
-        self.method_label.grid(row = 12, column = 6, sticky=W)
+        self.method_label.grid(row = 13, column = 6, sticky=W)
         
         self.method_method_label = ttk.Label(master, textvariable = self.method_string, font = self.normal_font)
-        self.method_method_label.grid(row = 12, column = 7)
+        self.method_method_label.grid(row = 13, column = 7)
         
         
         ##########################################################################################################
@@ -231,14 +241,17 @@ class PeakFinder:
             self.ax = self.fig.add_subplot(111)
             self.ax.plot(self.X, self.Y)
             self.ax.plot(self.xm, self.ym, 'ro', markersize = 10)
+            #self.ax.axvline(x=10, ymin = 0, ymax = 1, linewidth = 2, color = 'g')
             self.ax.axis('auto')
-            self.ax.set_xlabel('Weg [cm]')
+            self.ax.set_xlabel('Weg [mm]')
             self.ax.set_ylabel('Kraft [N]')
             self.fig_photo = self.draw_figure(self.canvas, self.fig, loc=(0, 0))
             
             #Methode Anzeigen
-            if self.number_max <= 5:
+            if 1 < self.number_max <= 5 :
                 self.method_string.set('Median')
+            elif self.number_max < 2:
+                self.method_string.set('Maximum')
             else:
                 self.method_string.set('80% Median')
             
@@ -267,25 +280,43 @@ class PeakFinder:
         del self.maxima_x[len(self.maxima_x)-int(round(delta-int(round(delta/2)))):len(self.maxima_x)]
         
         #Berechnung des Weiterreisswiderstands
-        d = float(self.sample_thickness_entry.get()) #Auslesen der Probendicke
-        self.median = np.median(self.maxima) #Berechnung des Medians
-        self.w = self.median/d
+        try:
+            d = float(self.sample_thickness_entry.get()) #Auslesen der Probendicke
+            self.median = np.median(self.maxima) #Berechnung des Medians
+            self.w = self.median/d
+            self.median_string.set(str(self.median))
+            self.w_string.set(str(self.w))
+            
+            #Berechnung der Spannweite
+            self.distance = self.maxima_x[len(self.maxima_x)-1]-self.maxima_x[0]
+            self.distance_string.set(str(self.distance))
+        except:
+            tkMessageBox.showwarning(u'Probendicke hat falsche Formatierung!', u'Bitte Probendicke in der Form Z.ZZ eingeben (Z=Zahl).')
         
-        #Berechnung der Spannweite
-        self.distance = self.maxima_x[len(self.maxima_x)-1]-self.maxima_x[0]
+        
+        
            
     def median_calculation(self):
         #Berechnung des Weiterreisswiderstands
-        d = float(self.sample_thickness_entry.get()) #Auslesen der Probendicke
-        self.median = np.median(self.maxima) #Berechnung des Medians
-        self.w = self.median/d
+        try:
+            d = float(self.sample_thickness_entry.get()) #Auslesen der Probendicke
+            
+            self.median = np.median(self.maxima) #Berechnung des Medians
+            self.w = self.median/d
+            self.median_string.set(str(self.median))
+            self.w_string.set(str(self.w))
+            
+            #Berechnung der Spannweite
+            self.distance = self.maxima_x[len(self.maxima_x)-1]-self.maxima_x[0]
+            self.distance_string.set(str(self.distance))
+        except:
+            tkMessageBox.showwarning(u'Probendicke hat falsche Formatierung!', u'Bitte Probendicke in der Form Z.ZZ eingeben (Z=Zahl).')
+            
         
-        #Berechnung der Spannweite
-        self.distance = self.maxima_x[len(self.maxima_x)-1]-self.maxima_x[0]
     
     def save(self):
         #Speichern der Auswertung im Projekt
-        if self.project_file != '':
+        if self.project_file != '' and self.sample_name_entry.get() != '':
             maxima_string = ''
             for maximum in self.maxima:
                 maxima_string += str(maximum)+'\t'
@@ -293,8 +324,10 @@ class PeakFinder:
             self.project_file_write = open(self.project_file, 'a')
             self.project_file_write.write('\n'+self.sample_name_entry.get()+'\t'+str(self.number_max)+'\t'+str(self.median)+'\t'+self.sample_thickness_entry.get()+'\t'+str(self.w)+'\t'+str(self.distance)+'\t'+self.method_string.get()+'\t'+self.comment_entry.get()+'\t'+maxima_string)
             self.project_file_write.close()
-        else:
+        elif self.project_file == '':
             tkMessageBox.showwarning(u'Keine Datei zum Speichern geöffnet!', u'Bitte Datei zum Speichern öffnen oder neue Datei erstellen.')
+        elif self.sample_name_entry.get() == '':
+            tkMessageBox.showwarning(u'Keine Probenname eingetragen!', u'Bitte Probenname eintragen.')
 
     def new_file(self):
         #Neues Projekt erstellen
@@ -331,7 +364,7 @@ class PeakFinder:
         label2 = ttk.Label(top, text = u"Messung importieren und auswerten", font=self.normal_font)
         label2.pack()
         
-        msg2 = Message(top, text=u'Zunächst muss über Datei -> Messung importieren die gewünschte Messung importiert werden.\n\nAnschließend werden Delta X und Delta Y so eingestellt, dass nur die gewünschten Maxima (rote Punkte im Graphen) vom Algorithmus erkannt werden. Dies lässt sich nach verändern der Werte über den Knopf Plotten überprüfen.\n\nZur Berechnung des Weiterreißwiderstandes wird die Probendicke benötigt. Diese muss im entsprechenden Fenster eingetragen werden (Trennung durch . nicht durch ,  Bsp: 1.75).\n\nÜber die Schaltfläche Berechnen werden die gewünschten Werte berechnet.\n\nNachdem der Probenname und optional ein Kommentar zur Messung in die entsprechenden Fenster eingetragen wurden, lässt sich die Auswertung im zuvor gewählten Projekt abspeichern.')
+        msg2 = Message(top, text=u'Zunächst muss über Datei -> Messung importieren die gewünschte Messung importiert werden.\n\nAnschließend werden Delta X und Delta Y so eingestellt, dass nur die gewünschten Maxima (rote Punkte im Graphen) vom Algorithmus erkannt werden.\n\nZur Berechnung des Weiterreißwiderstandes wird die Probendicke benötigt. Diese muss im entsprechenden Fenster eingetragen werden (Trennung durch . nicht durch ,  Bsp: 1.75).\n\nÜber die Schaltfläche Berechnen werden die gewünschten Werte berechnet.\n\nNachdem der Probenname und optional ein Kommentar zur Messung in die entsprechenden Fenster eingetragen wurden, lässt sich die Auswertung im zuvor gewählten Projekt abspeichern.')
         msg2.pack()
         
         button = Button(top, text="Verbergen", command=top.destroy)
@@ -358,7 +391,7 @@ class PeakFinder:
         '''
         figure_canvas_agg = FigureCanvasAgg(figure)
         figure_canvas_agg.draw()
-        figure_w, figure_h = figure.bbox.bounds
+        figure_x, figure_y, figure_w, figure_h = figure.bbox.bounds
         figure_w, figure_h = int(figure_w), int(figure_h)
         photo = PhotoImage(master=canvas, width=figure_w, height=figure_h)
     
