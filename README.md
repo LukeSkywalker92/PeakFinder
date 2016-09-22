@@ -1,2 +1,2 @@
 # PeakFinder
-![alt tag](https://github.com/LukeSkywalker92/BurningPi/blob/master/pic/screenshot.png)
+![alt tag](https://github.com/LukeSkywalker92/PeakFinder/blob/master/Screenshot.png)
